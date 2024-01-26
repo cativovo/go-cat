@@ -10,8 +10,12 @@ func main() {
 	// first value in this slice is the path to the program
 	args := os.Args[1:]
 
-	for _, v := range args {
-		readFile(v)
+	if len(args) < 1 {
+		readStdin()
+	} else {
+		for _, v := range args {
+			readFile(v)
+		}
 	}
 }
 
@@ -23,7 +27,16 @@ func readFile(path string) {
 	}
 
 	defer file.Close()
+	print(file)
+}
 
+func readStdin() {
+	file := os.Stdin
+	defer file.Close()
+	print(file)
+}
+
+func print(file *os.File) {
 	scanner := bufio.NewScanner(file)
 
 	for scanner.Scan() {
