@@ -5,6 +5,8 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"strconv"
+	"strings"
 )
 
 func main() {
@@ -35,8 +37,8 @@ func NewCatCommand() CatCommand {
 	flag.BoolVar(&number, "n", false, numberUsage+" (shorthand)")
 
 	var nonblank bool
-	flag.BoolVar(&number, "number-nonblank", defaultNonblank, numberUsage)
-	flag.BoolVar(&number, "b", false, nonblankUsage+" (shorthand)")
+	flag.BoolVar(&nonblank, "number-nonblank", defaultNonblank, numberUsage)
+	flag.BoolVar(&nonblank, "b", false, nonblankUsage+" (shorthand)")
 
 	flag.Parse()
 	flags := Flags{
@@ -79,8 +81,23 @@ func (c *CatCommand) readStdin() {
 
 func (c *CatCommand) print(file *os.File) {
 	scanner := bufio.NewScanner(file)
+	line := 0
 
 	for scanner.Scan() {
-		fmt.Fprintln(os.Stdout, scanner.Text())
+		text := scanner.Text()
+
+		if c.flags.number {
+			line++
+			printLineNumber(line)
+		} else if c.flags.nonblank && text != "" {
+			line++
+			printLineNumber(line)
+		}
+
+		fmt.Fprintln(os.Stdout, text)
 	}
+}
+
+func printLineNumber(line int) {
+	fmt.Fprintf(os.Stdout, "%s%d\t", strings.Repeat(" ", 6-len(strconv.Itoa(line))), line)
 }
