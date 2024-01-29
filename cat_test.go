@@ -164,6 +164,49 @@ func TestCatCommandFox(t *testing.T) {
 	}
 }
 
+func TestCatCommandEmpty(t *testing.T) {
+	testData := []TestData{
+		{
+			expectedFile: "empty.txt.out",
+			flags: Flags{
+				number:   false,
+				nonblank: false,
+			},
+		},
+		{
+			expectedFile: "empty.txt.b.out",
+			flags: Flags{
+				number:   false,
+				nonblank: true,
+			},
+		},
+		{
+			expectedFile: "empty.txt.n.out",
+			flags: Flags{
+				number:   true,
+				nonblank: false,
+			},
+		},
+	}
+
+	for _, v := range testData {
+		var resultWriter bytes.Buffer
+		var errWriter bytes.Buffer
+
+		catCommand := NewCatCommand(&resultWriter, &errWriter, v.flags, []string{EMPTY})
+		catCommand.Run()
+
+		result := resultWriter.String()
+		expected := readExpectedFile(t, v.expectedFile)
+
+		if expected != result {
+			t.Error("error in", v.expectedFile)
+			t.Error("result\n", result)
+			t.Error("expected\n", expected)
+		}
+	}
+}
+
 func readFile(t *testing.T, path string) string {
 	data, err := os.ReadFile(path)
 	if err != nil {
