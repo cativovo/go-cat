@@ -13,29 +13,29 @@ const (
 	BUSTLE  = "./test/inputs/the-bustle.txt"
 )
 
-func TestCatCommandBustle(t *testing.T) {
-	type Foo struct {
-		expectedTestFile string
-		flags            Flags
-	}
+type TestData struct {
+	expectedFile string
+	flags        Flags
+}
 
-	foo := []Foo{
+func TestCatCommandBustle(t *testing.T) {
+	testData := []TestData{
 		{
-			expectedTestFile: "the-bustle.txt.out",
+			expectedFile: "the-bustle.txt.out",
 			flags: Flags{
 				number:   false,
 				nonblank: false,
 			},
 		},
 		{
-			expectedTestFile: "the-bustle.txt.b.out",
+			expectedFile: "the-bustle.txt.b.out",
 			flags: Flags{
 				number:   false,
 				nonblank: true,
 			},
 		},
 		{
-			expectedTestFile: "the-bustle.txt.n.out",
+			expectedFile: "the-bustle.txt.n.out",
 			flags: Flags{
 				number:   true,
 				nonblank: false,
@@ -43,7 +43,7 @@ func TestCatCommandBustle(t *testing.T) {
 		},
 	}
 
-	for _, v := range foo {
+	for _, v := range testData {
 		var resultWriter bytes.Buffer
 		var errWriter bytes.Buffer
 
@@ -51,22 +51,85 @@ func TestCatCommandBustle(t *testing.T) {
 		catCommand.Run()
 
 		result := resultWriter.String()
-		expected := readExpectedFile(t, v.expectedTestFile)
+		expected := readExpectedFile(t, v.expectedFile)
 
 		if expected != result {
-			t.Error("eyy mali", v.expectedTestFile)
+			t.Error("error in", v.expectedFile)
 			t.Error("result\n", result)
 			t.Error("expected\n", expected)
 		}
 	}
 }
 
-func readExpectedFile(t *testing.T, filename string) string {
-	path := "./test/expected/" + filename
+func TestCatCommandBustleStdIn(t *testing.T) {
+	testData := []TestData{
+		{
+			expectedFile: "the-bustle.txt.stdin.out",
+			flags: Flags{
+				number:   false,
+				nonblank: false,
+			},
+		},
+		{
+			expectedFile: "the-bustle.txt.b.stdin.out",
+			flags: Flags{
+				number:   false,
+				nonblank: true,
+			},
+		},
+		{
+			expectedFile: "the-bustle.txt.n.stdin.out",
+			flags: Flags{
+				number:   true,
+				nonblank: false,
+			},
+		},
+	}
+
+	for _, v := range testData {
+		var resultWriter bytes.Buffer
+		var errWriter bytes.Buffer
+
+		input := []byte(readFile(t, BUSTLE))
+		r, w, err := os.Pipe()
+		if err != nil {
+			t.Fatal(err)
+		}
+
+		_, err = w.Write(input)
+		if err != nil {
+			t.Error(err)
+		}
+		w.Close()
+		originalStdin := os.Stdin
+		os.Stdin = r
+
+		catCommand := NewCatCommand(&resultWriter, &errWriter, v.flags, []string{})
+		catCommand.Run()
+
+		result := resultWriter.String()
+		expected := readExpectedFile(t, v.expectedFile)
+
+		if expected != result {
+			t.Error("error in", v.expectedFile)
+			t.Error("result\n", result)
+			t.Error("expected\n", expected)
+		}
+
+		// restore stdin
+		os.Stdin = originalStdin
+	}
+}
+
+func readFile(t *testing.T, path string) string {
 	data, err := os.ReadFile(path)
 	if err != nil {
-		t.Fatal(path + " not found")
+		t.Error(path + " not found")
 	}
 
 	return string(data)
+}
+
+func readExpectedFile(t *testing.T, filename string) string {
+	return readFile(t, "./test/expected/"+filename)
 }
